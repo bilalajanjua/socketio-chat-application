@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,500|Varela+Round');
+html,
+body {
+  background-image: url(../images/cool-background.png);
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-size: cover;
+  height: 100%;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif !important;
+  font-family: 'Varela Round', sans-serif !important;
+}
+
+.main {
+  background-color: transparent;
+  min-height: 580px;
+  max-height: 580px;
+  overflow: hidden;
+  overflow-y: scroll;
+}
+
+.myMessage {
+  text-align: right;
+}

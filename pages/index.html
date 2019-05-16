@@ -1,0 +1,212 @@
+<!-- 
+  * Written by Bilal Ahmed Janjua <bilalahmjan@gmail.com>, May 2019
+ -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Let's Chat</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
+      integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="css/toast.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="js/toast.js"></script>
+  </head>
+  <body>
+    <!-- Modal -->
+    <div
+      class="modal fade"
+      id="enterChat"
+      tabindex="-1"
+      role="dialog"
+      aria-hidden="true"
+      data-backdrop="static"
+      data-keyboard="false"
+    >
+      <div class="modal-dialog modal-dialog-centered modal" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Enter Username</h5>
+          </div>
+          <div class="modal-body">
+            <div
+              id="errorAlert"
+              class="alert alert-warning d-none"
+              role="alert"
+            >
+              <strong>This username is already taken.</strong>
+            </div>
+            <form id="usernameForm">
+              <input
+                type="text"
+                placeholder="i.e. Bilal Ahmed Janjua"
+                class="form-control"
+                name="username"
+                required
+              />
+              <button class="btn btn-primary form-control" type="submit">
+                Enter Chat
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container py-2 ">
+      <div class="row ">
+        <div class="col-md-12 text-center text-light">
+          <div class="shadow-sm p-3 mb-2 bg-white rounded text-primary">
+            <h3>
+              Chat Room
+              <span class="h6" id="connectedUsers"></span>
+            </h3>
+            <hr />
+            <b>Users: </b> <span id="usersList"></span>
+          </div>
+        </div>
+        <div class="col-md-12 ">
+          <div class="bg-white p-3 rounded main">
+            <div class="container-fluid" id="messages"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer fixed-bottom">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="bg-light p-3 rounded text-center">
+              <form id="messageForm">
+                <div class="form-row">
+                  <div class="col p-2">
+                    <h6 class="text-success" id="usernamePlaceholder">
+                      Username:
+                    </h6>
+                  </div>
+                  <div class="col-8">
+                    <input
+                      type="text"
+                      class="form-control"
+                      placeholder="Enter Message..."
+                      id="msg"
+                      data-emojiable="true"
+                    />
+                  </div>
+                  <div class="col-2">
+                    <button class="btn btn-primary" type="submit" id="sendBtn">
+                      Send <i class="fas fa-comment"></i>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="js/socket-client.io.js"></script>
+    <script>
+      const socket = io();
+
+      socket.on('total users', data => {
+        $('#connectedUsers').html(`(${data.count} users connected)`);
+        $('#usersList').html(`${data.users}`);
+        console.log(data.users);
+      });
+
+      socket.on('username already exists', data => {
+        $('#errorAlert').removeClass('d-none');
+      });
+
+      $(document).ready(function() {
+        $('#enterChat').modal('show');
+      });
+
+      $('#usernameForm').on('submit', e => {
+        e.preventDefault();
+        let data = $('#usernameForm').serializeArray();
+        const name = data[0]['value'];
+        socket.emit('add user', data[0]['value']);
+      });
+
+      socket.on('i am connected', username => {
+        $('#usernamePlaceholder').html(`${username}:`);
+      });
+
+      socket.on('user connected', data => {
+        const username = data.username;
+        $('#enterChat').modal('hide');
+        $.toast({
+          title: 'New Connection',
+          subtitle: `a few seconds ago`,
+          content: `${data['username']} is connected for chat.`,
+          type: 'info',
+          delay: 5000
+        });
+      });
+
+      socket.on('chat message', data => {
+        const message = data.message;
+        const username = data.username;
+        const msgDiv = `
+        <div class="row my-4">
+          <div class="col-md-8">
+            <span class="bg-primary p-2 rounded text-white">
+              ${message}
+            </span>
+            <br />
+            <small class="text-muted"><b>${username}:</b> ${moment().format(
+          'h:mm:ss a'
+        )}</small>
+          </div>
+        </div>
+        `;
+        $('#messages').append(msgDiv);
+        $('.main').animate({ scrollTop: $('.main').prop('scrollHeight') }, 100);
+      });
+
+      $('#messageForm').submit(function(e) {
+        e.preventDefault();
+
+        const message = $('#msg').val();
+        socket.emit('chat message', message);
+
+        $('.main').animate({ scrollTop: $('.main').prop('scrollHeight') }, 100);
+
+        $('#msg').val('');
+      });
+
+      socket.on('my chat message', data => {
+        const msgDiv = `
+        <div class="row my-4 myMessage">
+          <div class="col-md-12">
+            
+            <span class="bg-secondary p-2 rounded text-white">
+              ${data.message}
+            </span>
+            <br />
+            <small class="text-muted"><b>${
+              data.username
+            }:</b> ${moment().format('h:mm:ss a')}</small>
+          </div>
+        </div>
+        `;
+        $('#messages').append(msgDiv);
+      });
+    </script>
+  </body>
+</html>
